@@ -23,6 +23,8 @@ logger.setLevel(logging.INFO)
 
 p=Producer({
     'bootstrap.servers':'localhost:9092',
+    'linger.ms': 10,
+    'acks': 1,
     })
 print('Kafka Producer has been initiated...')
 
