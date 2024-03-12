@@ -33,7 +33,7 @@ services:
   kowl:
     image: quay.io/cloudhut/kowl:master
     depends_on:
-      - kafka
+      - broker
     ports:
       - 8080:8080
     environment:
