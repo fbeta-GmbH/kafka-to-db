@@ -7,9 +7,6 @@ import random
 import os
 from os.path import join, dirname
 import time
-from dotenv import load_dotenv
-dotenv_path = join(dirname(__file__), '.env')
-load_dotenv(dotenv_path)
 
 fake=Faker()
 
@@ -22,7 +19,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 p=Producer({
-    'bootstrap.servers':'localhost:9092',
+    'bootstrap.servers':os.getenv('KAFKA_BROKERS'),
     'linger.ms': 10,
     'acks': 1,
     })
@@ -38,21 +35,18 @@ def receipt(err,msg):
 
 def main():
     for i in range(10):
-        print(f'Producing message {i} ...')
+        key = fake.uuid4()
+        headers = { }
+        for i in range(random.randint(1,5)):
+            headers[fake.word()] = fake.word()
         data={
-           'test':i  
+           'test':random.randint(1,100)  
            }
-        print('dumping data')
         m=json.dumps(data)
-        print('polling')
-        p.poll()
-        print('producing')
-        p.produce('user-tracker', m.encode('utf-8'),callback=receipt)
-        print('flushing')
-        p.flush()
-        print('sleeping for 3 seconds...')
+        p.poll(3)
+        p.produce(os.getenv('KAFKA_TOPIC'), key=key, headers = headers, value= m.encode('utf-8'),callback=receipt)
+        p.flush(3)
         time.sleep(3)
 
 if __name__ == '__main__':
     main()
-    print('Producer has been terminated...')

@@ -1,0 +1,49 @@
+version: '3'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kafka
+    ports:
+      - 5432:5432
+    networks:
+      - kafka-connection
+
+  consumer:
+    build:
+      context: .
+      dockerfile: ./python/Dockerfile
+    container_name: consumer
+    depends_on:
+      - postgres
+    environment:
+      KAFKA_BROKERS: broker:29092
+      KAFKA_GROUP_ID: test-consumer
+      KAFKA_TOPIC: test-topic
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/kafka
+    volumes:
+      - ./python:/app
+    networks:
+      - kafka-connection
+  
+  producer:
+    build:
+      context: .
+      dockerfile: ./python/Dockerfile
+    container_name: producer
+    environment:
+      KAFKA_BROKERS: broker:29092
+      KAFKA_TOPIC: test-topic
+    entrypoint: ["python", "producer.py"]
+    volumes:
+      - ./python:/app
+    networks:
+      - kafka-connection
+
+networks:
+  kafka-connection:
+    driver: bridge
+    external: true
