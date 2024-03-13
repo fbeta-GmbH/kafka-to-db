@@ -8,8 +8,9 @@ import logging
 time.sleep(10)
 logging.basicConfig(format='%(asctime)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
-                    filename='producer.log',
-                    filemode='w')
+                    # filename='producer.log',
+                    # filemode='w'
+                    )
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -38,7 +39,7 @@ class Data(Base):
     topic = Column(TEXT)
     headers = relationship("Headers", back_populates="data")
 
-print("Connecting to database")
+logger.info("Connecting to database")
 engine = create_engine(os.getenv('DATABASE_URL'))
 Base.metadata.create_all(engine)
 # connection = engine.connect()
@@ -47,7 +48,7 @@ from sqlalchemy.orm import sessionmaker
 Session = sessionmaker(bind=engine)
 session = Session()
 
-print("Setting up Kafka consumer")
+logger.info("Setting up Kafka consumer")
 from confluent_kafka import Consumer
 
 conf = {'bootstrap.servers': os.getenv('KAFKA_BROKERS'),
@@ -87,22 +88,23 @@ running = True
 
 def basic_consume_loop(consumer, topics):
     try:
+        logger.info("Subscribing to topics: {}".format(topics))
         consumer.subscribe(topics)
 
         while running:
-            print("polling")
+            logger.debug("polling")
             msg = consumer.poll(timeout=1.0)
             if msg is None: continue
 
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     # End of partition event
-                    sys.stderr.write('%% %s [%d] reached end at offset %d\n' %
+                    logging.error('%% %s [%d] reached end at offset %d\n' %
                                      (msg.topic(), msg.partition(), msg.offset()))
                 elif msg.error():
                     raise KafkaException(msg.error())
             else:
-                print('Received message: {}'.format(msg))
+                logger.debug('Received message: {}'.format(msg))
                 msg_process(msg)
     finally:
         # Close down consumer to commit final offsets.
